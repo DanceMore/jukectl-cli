@@ -235,9 +235,6 @@ async fn status(api_hostname: &str) -> Result<(), reqwest::Error> {
     Ok(())
 }
 
-
-
-
 async fn skip_item(api_hostname: &str) -> Result<(), reqwest::Error> {
     let client = reqwest::Client::new();
     let url = format!("{}/skip", api_hostname);
@@ -249,7 +246,29 @@ async fn skip_item(api_hostname: &str) -> Result<(), reqwest::Error> {
         .await?;
 
     if response.status().is_success() {
-        println!("[+] Item skipped successfully.");
+        let body = response.text().await?;
+        debug!("[+] Item skipped successfully.");
+
+        // Attempt to parse the JSON response into a serde_json::Value
+        match serde_json::from_str::<serde_json::Value>(&body) {
+            Ok(json) => {
+                // Check if the "skipped" and "new" fields exist and are strings
+                if let (Some(skipped), Some(new)) = (
+                    json["skipped"].as_str(),
+                    json["new"].as_str(),
+                ) {
+                    println!("{}", "[!] SKIPPING SONG".red().bold());
+                    println!("    {}", skipped.red());
+                    println!("{}", "now playing:".cyan().bold());
+                    println!("    {}", new.green().bold());
+                } else {
+                    eprintln!("Error: Missing or invalid 'skipped' or 'new' fields in JSON response.");
+                }
+            }
+            Err(e) => {
+                eprintln!("Error: Failed to parse JSON response: {}", e);
+            }
+        }
     } else {
         eprintln!("[!] Error: Failed to skip item (HTTP {})", response.status());
     }
