@@ -9,7 +9,7 @@ extern crate tokio;
 use clap::{App, Arg};
 use colored::*;
 use dotenv::dotenv;
-use log::{error, warn, info, debug, _};
+use log::{error, warn, info, debug};
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json;
