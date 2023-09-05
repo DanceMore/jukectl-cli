@@ -136,12 +136,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 	("tag", Some(tag_matches)) => {
-            let add_tags: Vec<String> = vec![tag_matches.value_of("TagName").unwrap().to_string()]; // Create a Vec<String> with the tag name
-            tag(&api_hostname, add_tags).await?;
+            let add_tag = tag_matches.value_of("TagName").unwrap().to_string();
+            tag(&api_hostname, add_tag).await?;
         }
-        ("untag", Some(untag_matches)) => {
-            let remove_tags: Vec<String> = vec![untag_matches.value_of("TagName").unwrap().to_string()]; // Create a Vec<String> with the tag name
-            untag(&api_hostname, remove_tags).await?;
+	("untag", Some(untag_matches)) => {
+            let remove_tag = untag_matches.value_of("TagName").unwrap().to_string();
+            untag(&api_hostname, remove_tag).await?;
         }
         ("skip", Some(_)) => {
             match skip_item(&api_hostname).await {
@@ -165,8 +165,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
-
 
 async fn status(api_hostname: &str) -> Result<(), reqwest::Error> {
     print_banner();
@@ -301,7 +299,23 @@ async fn playback(
     Ok(())
 }
 
-use serde_json::json;
+async fn tag(
+    api_hostname: &str,
+    add_tags: String,
+) -> Result<(), reqwest::Error> {
+    debug!("[-] Tag Helper: passing thru to perform_tagging()");
+    println!("{}{}", "[+] adding tag :".green(), add_tags.green().bold());
+    perform_tagging(api_hostname, vec![add_tags], vec![]).await
+}
+
+async fn untag(
+    api_hostname: &str,
+    remove_tags: String,
+) -> Result<(), reqwest::Error> {
+    debug!("[-] UnTag Helper: passing thru to perform_tagging()");
+    println!("{}{}", "[+] removing tag: ".red(), remove_tags.red().bold());
+    perform_tagging(api_hostname, vec![], vec![remove_tags]).await
+}
 
 async fn perform_tagging(
     api_hostname: &str,
@@ -314,6 +328,7 @@ async fn perform_tagging(
     let root_url = format!("{}/", api_hostname);
     let root_response = client.get(&root_url).send().await?;
 
+    println!("{}", "targeting song:".yellow().bold());
     let now_playing: Option<String> = if root_response.status().is_success() {
         let root_body = root_response.text().await?;
         debug!("[?] raw root response body: {}", root_body);
@@ -337,9 +352,12 @@ async fn perform_tagging(
         None
     };
 
+    // gnarly line just to print, someone tell me why this is stupid and wrong
+    println!("    {}", now_playing.clone().expect("REASON").to_string().yellow().bold());
+
     // Create a JSON object representing the request body
-    let request_body = json!({
-        "filename": now_playing.unwrap_or_default(),
+    let request_body = serde_json::json!({
+        "filename": now_playing,
         "add": add_tags,
         "remove": remove_tags
     });
@@ -354,26 +372,10 @@ async fn perform_tagging(
         .await?;
 
     if response.status().is_success() {
-        println!("[+] Tags updated successfully.");
+        println!("{}", "[+] Tags updated successfully.".green());
     } else {
         eprintln!("[!] Error: Failed to update tags (HTTP {})", response.status());
     }
 
     Ok(())
-}
-
-async fn tag(
-    api_hostname: &str,
-    add_tags: Vec<String>,
-) -> Result<(), reqwest::Error> {
-    debug!("[-] Tag Helper: passing thru to perform_tagging()");
-    perform_tagging(api_hostname, add_tags, vec![]).await
-}
-
-async fn untag(
-    api_hostname: &str,
-    remove_tags: Vec<String>,
-) -> Result<(), reqwest::Error> {
-    debug!("[-] UnTag Helper: passing thru to perform_tagging()");
-    perform_tagging(api_hostname, vec![], remove_tags).await
 }
