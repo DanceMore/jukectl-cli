@@ -87,7 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .about("command-line remote control for jukectl music player service")
         .subcommand(
             App::new("status")
-                .about("display current status of service")
+                .about("Display current status of service")
         )
         .subcommand(
             App::new("tag")
