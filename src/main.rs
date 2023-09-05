@@ -84,8 +84,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // clap crate, giving me almost Ruby-Thor library vibes and easy
     // command-line arg parsing :D
     let matches = App::new("jukectl")
-        .version("1.0")
-        .author("DanceMore")
         .about("command-line remote control for jukectl music player service")
         .subcommand(
             App::new("status")
@@ -160,7 +158,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Err(err) => eprintln!("[!] Error: {}", err),
             }
         }
-        _ => println!("Invalid subcommand. Use 'myctl --help' for usage."),
+        _ => println!("Invalid subcommand. Use 'jukectl --help' for usage."),
     }
 
     Ok(())
