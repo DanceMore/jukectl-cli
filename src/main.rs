@@ -135,14 +135,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Err(err) => eprintln!("[!] Error: {}", err),
             }
         }
-        //("tag", Some(tag_matches)) => {
-        //    let tag_name = tag_matches.value_of("TagName").unwrap();
-        //    tag_item(tag_name);
-        //}
-        //("untag", Some(untag_matches)) => {
-        //    let tag_name = untag_matches.value_of("TagName").unwrap();
-        //    untag_item(tag_name);
-        //}
+	("tag", Some(tag_matches)) => {
+            let add_tags: Vec<String> = vec![tag_matches.value_of("TagName").unwrap().to_string()]; // Create a Vec<String> with the tag name
+            tag(&api_hostname, add_tags).await?;
+        }
+        ("untag", Some(untag_matches)) => {
+            let remove_tags: Vec<String> = vec![untag_matches.value_of("TagName").unwrap().to_string()]; // Create a Vec<String> with the tag name
+            untag(&api_hostname, remove_tags).await?;
+        }
         ("skip", Some(_)) => {
             match skip_item(&api_hostname).await {
                 Ok(_) => debug!("[-] skip() function completed successfully."),
@@ -299,4 +299,81 @@ async fn playback(
     }
 
     Ok(())
+}
+
+use serde_json::json;
+
+async fn perform_tagging(
+    api_hostname: &str,
+    add_tags: Vec<String>,
+    remove_tags: Vec<String>,
+) -> Result<(), reqwest::Error> {
+    let client = reqwest::Client::new();
+
+    // Make a GET request to the root URL to fetch the "Now Playing" song
+    let root_url = format!("{}/", api_hostname);
+    let root_response = client.get(&root_url).send().await?;
+
+    let now_playing: Option<String> = if root_response.status().is_success() {
+        let root_body = root_response.text().await?;
+        debug!("[?] raw root response body: {}", root_body);
+
+        // Attempt to deserialize the JSON response into a Vec<String>
+        match serde_json::from_str::<Vec<String>>(&root_body) {
+            Ok(strings) => {
+                if let Some(song) = strings.get(0) {
+                    Some(song.to_owned())
+                } else {
+                    None
+                }
+            }
+            Err(e) => {
+                eprintln!("Error: Failed to deserialize root response: {}", e);
+                None
+            }
+        }
+    } else {
+        eprintln!("Error: Failed to fetch root (HTTP {})", root_response.status());
+        None
+    };
+
+    // Create a JSON object representing the request body
+    let request_body = json!({
+        "filename": now_playing.unwrap_or_default(),
+        "add": add_tags,
+        "remove": remove_tags
+    });
+
+    let url = format!("{}/song/tags", api_hostname);
+
+    let response = client
+        .post(&url)
+        .header(reqwest::header::CONTENT_TYPE, "application/json")
+        .json(&request_body)
+        .send()
+        .await?;
+
+    if response.status().is_success() {
+        println!("[+] Tags updated successfully.");
+    } else {
+        eprintln!("[!] Error: Failed to update tags (HTTP {})", response.status());
+    }
+
+    Ok(())
+}
+
+async fn tag(
+    api_hostname: &str,
+    add_tags: Vec<String>,
+) -> Result<(), reqwest::Error> {
+    debug!("[-] Tag Helper: passing thru to perform_tagging()");
+    perform_tagging(api_hostname, add_tags, vec![]).await
+}
+
+async fn untag(
+    api_hostname: &str,
+    remove_tags: Vec<String>,
+) -> Result<(), reqwest::Error> {
+    debug!("[-] UnTag Helper: passing thru to perform_tagging()");
+    perform_tagging(api_hostname, vec![], remove_tags).await
 }
