@@ -10,7 +10,7 @@ companion CLI tool to interact with the crusty JSON API that is my beloved [juke
 
 ![image](https://github.com/DanceMore/jukectl-cli/assets/79212033/09e5750c-6866-440b-8b70-1968af50a05f)
 
-set ENV `JUKECTL_HOST` to something like `http://my.comtainer.host:4567` and then run it.
+set ENV `JUKECTL_HOST` to something like `http://my.container.host:4567` and then run it.
 
 ```
 % jukectl --help
