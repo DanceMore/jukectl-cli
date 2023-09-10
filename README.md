@@ -1,3 +1,9 @@
+# already obsolete repo
+
+# combined with jukectl-server at Dancemore/jukectl
+
+https://github.com/DanceMore/jukectl/tree/main/cli
+
 # jukectl-cli
 
 companion CLI tool to interact with the crusty JSON API that is my beloved [jukectl](https://github.com/DanceMore/jukectl)
